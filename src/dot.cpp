@@ -58,10 +58,9 @@
 
 namespace DotColorRules {
 
-    StringDict readDict(QCString configName) {
+    StringDict readDict(QStrList& stringList) {
       // add aliases to a dictionary
       StringDict stringDict;
-      QStrList &stringList = Config_getList(configName);
       const char *s = stringList.first();
       stringDict.setAutoDelete(TRUE);
       while (s) {
@@ -93,8 +92,8 @@ namespace DotColorRules {
 
     QCString getColor(const QCString &label, const QCString &defaultColor) {
 
-      static StringDict exact = readDict("DOT_COLOR_RULES_EXACT");
-      static StringDict regex = readDict("DOT_COLOR_RULES_REGEX");
+      static StringDict exact = readDict(Config_getList(DOT_COLOR_RULES_EXACT));
+      static StringDict regex = readDict(Config_getList(DOT_COLOR_RULES_REGEX));
 
       QCString ret = defaultColor;
 
