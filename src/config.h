@@ -35,7 +35,8 @@ class FTextStream;
 #define Config_getBool(val)   (ConfigValues::instance().val)
 #define Config_getInt(val)    (ConfigValues::instance().val)
 #define Config_getEnum(val)   (ConfigValues::instance().val)
-#define Config_getList(val)   (ConfigValues::instance().val)
+//#define Config_getList(val)   (ConfigValues::instance().val)
+#define Config_getList(val)   (ConfigValues::instance().*((ConfigValues::InfoList*)ConfigValues::instance().get(#val))->item)
 #endif
 //! @}
 

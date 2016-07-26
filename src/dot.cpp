@@ -17,6 +17,7 @@
  */
 
 #include <stdlib.h>
+#include <iostream>
 
 #include <qdir.h>
 #include <qfile.h>
@@ -24,6 +25,7 @@
 #include <qthread.h>
 #include <qmutex.h>
 #include <qwaitcondition.h>
+#include <qregexp.h>
 
 #include "dot.h"
 #include "doxygen.h"
@@ -53,6 +55,104 @@
 //#define FONTNAME "Helvetica"
 #define FONTNAME getDotFontName()
 #define FONTSIZE getDotFontSize()
+
+namespace DotColorRules {
+
+    StringDict readDict(QCString configName) {
+      // add aliases to a dictionary
+      StringDict stringDict;
+      QStrList &stringList = Config_getList(configName);
+      const char *s = stringList.first();
+      stringDict.setAutoDelete(TRUE);
+      while (s) {
+        if (stringDict[s] == 0) {
+          QCString alias = s;
+          int i = alias.find('=');
+          if (i > 0) {
+            QCString name = alias.left(i).stripWhiteSpace();
+            QCString value = alias.right(alias.length() - i - 1);
+            //printf("Alias: found name=`%s' value=`%s'\n",name.data(),value.data());
+            if (!name.isEmpty()) {
+              QCString *dn = stringDict[name];
+              if (dn == 0) // insert new alias
+              {
+                stringDict.insert(name, new QCString(value));
+              }
+              else // overwrite previous alias
+              {
+                *dn = value;
+              }
+            }
+          }
+        }
+        s = stringList.next();
+      }
+
+      return stringDict;
+    }
+
+    QCString getColor(const QCString &label, const QCString &defaultColor) {
+
+      static StringDict exact = readDict("DOT_COLOR_RULES_EXACT");
+      static StringDict regex = readDict("DOT_COLOR_RULES_REGEX");
+
+      QCString ret = defaultColor;
+
+      //std::cout << "DOT_COLOR_RULES: getting color for label " << label << "." << std::endl;
+
+      if (exact[label] != 0) {
+        //std::cout << "DOT_COLOR_RULES_EXACT: using " << *exact[label] << " color for " << label << "." << std::endl;
+        ret = *exact[label];
+      } else {
+        QDictIterator<QCString> it(regex);
+
+        for (; it.current(); ++it) {
+          QRegExp qr(it.currentKey());
+          //std::cout << "DOT_COLOR_RULES_REGEX: matching label " << label << " with " << it.currentKey() << "." << std::endl;
+          if (qr.find(label, 0) >= 0) {
+            //std::cout << "DOT_COLOR_RULES_REGEX: MATCH - using " << *it.current() << " color for " << label << "." << std::endl;
+            ret = *it.current();
+          }
+        }
+      }
+
+      return ret;
+    }
+
+    QCString getColor(const DirDef *dirdef, const char * defaultColor) {
+
+        QCString ret(defaultColor);
+
+        //std::cout << "DOT_COLOR_RULES: getting color for " << dirdef->shortName() << " DirRef (assumed path: " << ((dirdef->getPath()) ? dirdef->getPath() : "MISSING") << ")." << std::endl;
+
+        ret = getColor(dirdef->shortName(), defaultColor);
+        if (ret == defaultColor) {
+          ret = getColor(dirdef->getPath(), defaultColor);
+        }
+
+        return ret;
+    }
+
+    QCString getColor(const DotNode * dn, const char * defaultColor) {
+
+      QCString ret(defaultColor);
+
+      //std::cout << "DOT_COLOR_RULES: getting color for " << dn->getLabel() << " DotNode (assumed path: " << ((dn->getPath()) ? dn->getPath() : "MISSING") << ")." << std::endl;
+
+      ret = getColor(dn->getLabel(), defaultColor);
+      if (ret == defaultColor) {
+          if (dn->getPath()) {
+            ret = getColor(dn->getPath(), defaultColor);
+          } else {
+              //std::cout << "DOT_COLOR_RULES: assuming " << dn->getLabel() << " is an external node with default color." << std::endl;
+          }
+      }
+
+      return ret;
+    }
+}
+
+
 
 //--------------------------------------------------------------------
 
@@ -1426,6 +1526,13 @@ DotNode::DotNode(int n,const char *lab,const char *tip, const char *url,
   , m_truncated(Unknown)
   , m_distance(1000)
 {
+    if (cd) {
+        if (cd->getFileDef()) {
+            if (cd->getFileDef()->getPath()) {
+                m_path = cd->getFileDef()->getPath();
+            }
+        }
+    }
 }
 
 DotNode::~DotNode()
@@ -1773,7 +1880,9 @@ void DotNode::writeBox(FTextStream &t,
   t << "\",height=0.2,width=0.4";
   if (m_isRoot)
   {
-    t << ",color=\"black\", fillcolor=\"grey75\", style=\"filled\", fontcolor=\"black\"";
+    t << ",color=\"black\", fillcolor=\"";
+    t << DotColorRules::getColor(this, "white");
+    t << "\", style=\"filled,bold\", fontcolor=\"black\"";
   }
   else 
   {
@@ -1781,7 +1890,7 @@ void DotNode::writeBox(FTextStream &t,
     if (!dotTransparent)
     {
       t << ",color=\"" << labCol << "\", fillcolor=\"";
-      t << "white";
+      t << DotColorRules::getColor(this, "white");
       t << "\", style=\"filled\"";
     }
     else
@@ -2409,6 +2518,11 @@ void DotGfxHierarchyTable::addHierarchy(DotNode *n,ClassDef *cd,bool hideSuper)
               tooltip,
               tmp_url.data()
               );
+         
+          if (bClass->getFileDef()) {
+              bn->setPath(bClass->getFileDef()->getPath());
+          }
+
           n->addChild(bn,bcd->prot);
           bn->addParent(n);
           //printf("  Adding node %s to new base node %s (c=%d,p=%d)\n",
@@ -3331,6 +3445,11 @@ void DotInclDepGraph::buildGraph(DotNode *n,FileDef *fd,int distance)
               FALSE,             // rootNode
               0                  // cd
               );
+
+          if (bfd) {
+              bn->setPath(bfd->getPath());
+          }
+          
           n->addChild(bn,0,0,0);
           bn->addParent(n);
           m_usedNodes->insert(in,bn);
@@ -3412,6 +3531,7 @@ DotInclDepGraph::DotInclDepGraph(FileDef *fd,bool inverse)
                             tmp_url.data(),
                             TRUE     // root node
                            );
+  m_startNode->setPath(fd->getPath());
   m_startNode->setDistance(0);
   m_usedNodes = new QDict<DotNode>(1009);
   m_usedNodes->insert(fd->absFilePath(),m_startNode);
@@ -3650,6 +3770,11 @@ void DotCallGraph::buildGraph(DotNode *n,MemberDef *md,int distance)
               uniqueId,
               0 //distance
               );
+
+          if (rmd->getFileDef()) {
+              bn->setPath(rmd->getFileDef()->getPath());
+          }
+
           n->addChild(bn,0,0,0);
           bn->addParent(n);
           bn->setDistance(distance);
@@ -3741,6 +3866,11 @@ DotCallGraph::DotCallGraph(MemberDef *md,bool inverse)
                             uniqueId.data(),
                             TRUE     // root node
                            );
+
+  if (md->getFileDef()) {
+      m_startNode->setPath(md->getFileDef()->getPath());
+  }
+
   m_startNode->setDistance(0);
   m_usedNodes = new QDict<DotNode>(1009);
   m_usedNodes->insert(uniqueId,m_startNode);
@@ -4732,50 +4862,57 @@ void writeDotDirDepGraph(FTextStream &t,DirDef *dd,bool linkRelations)
     dirsInGraph.insert(dd->getOutputFileBase(),dd);
     if (dd->parent())
     {
-      t << "  subgraph cluster" << dd->parent()->getOutputFileBase() << " {\n";
-      t << "    graph [ bgcolor=\"#ddddee\", pencolor=\"black\", label=\"" 
-        << dd->parent()->shortName() 
+        t << "  subgraph cluster" << dd->parent()->getOutputFileBase() << " {\n";
+        t << "    graph [ bgcolor=\"";
+        t << DotColorRules::getColor(dd->parent(), "#ddddee");
+        t << "\", pencolor=\"black\", label=\"" << dd->parent()->shortName()
         << "\" fontname=\"" << FONTNAME << "\", fontsize=\"" << FONTSIZE << "\", URL=\"";
       t << dd->parent()->getOutputFileBase() << Doxygen::htmlFileExtension;
       t << "\"]\n";
     }
     if (dd->isCluster())
     {
-      t << "  subgraph cluster" << dd->getOutputFileBase() << " {\n";
-      t << "    graph [ bgcolor=\"#eeeeff\", pencolor=\"black\", label=\"\""
-        << " URL=\"" << dd->getOutputFileBase() << Doxygen::htmlFileExtension 
+        t << "  subgraph cluster" << dd->getOutputFileBase() << " {\n";
+        t << "    graph [ bgcolor=\"";
+        t << DotColorRules::getColor(dd, "#eeeeff");
+        t << "\", pencolor=\"black\", label=\"\""
+        << " URL=\"" << dd->getOutputFileBase() << Doxygen::htmlFileExtension
         << "\"];\n";
       t << "    " << dd->getOutputFileBase() << " [shape=plaintext label=\"" 
         << dd->shortName() << "\"];\n";
 
-      // add nodes for sub directories
-      QListIterator<DirDef> sdi(dd->subDirs());
-      DirDef *sdir;
-      for (sdi.toFirst();(sdir=sdi.current());++sdi)
-      {
-        t << "    " << sdir->getOutputFileBase() << " [shape=box label=\"" 
-          << sdir->shortName() << "\"";
-        if (sdir->isCluster())
+        // add nodes for sub directories
+        QListIterator<DirDef> sdi(dd->subDirs());
+        DirDef *sdir;
+        for (sdi.toFirst();(sdir=sdi.current());++sdi)
         {
-          t << " color=\"red\"";
-        }
-        else
-        {
-          t << " color=\"black\"";
-        }
-        t << " fillcolor=\"white\" style=\"filled\"";
-        t << " URL=\"" << sdir->getOutputFileBase() 
-          << Doxygen::htmlFileExtension << "\"";
-        t << "];\n";
-        dirsInGraph.insert(sdir->getOutputFileBase(),sdir);
+            t << "    " << sdir->getOutputFileBase() << " [shape=box label=\""
+            << sdir->shortName() << "\"";
+            if (sdir->isCluster())
+            {
+                t << " color=\"red\"";
+            }
+            else
+            {
+                t << " color=\"black\"";
+            }
+            t << " fillcolor=\"";
+            t << DotColorRules::getColor(sdir, "white");
+            t << "\" style=\"filled\"";
+            t << " URL=\"" << sdir->getOutputFileBase()
+            << Doxygen::htmlFileExtension << "\"";
+            t << "];\n";
+            dirsInGraph.insert(sdir->getOutputFileBase(),sdir);
       }
       t << "  }\n";
     }
     else
     {
-      t << "  " << dd->getOutputFileBase() << " [shape=box, label=\"" 
-        << dd->shortName() << "\", style=\"filled\", fillcolor=\"#eeeeff\","
-        << " pencolor=\"black\", URL=\"" << dd->getOutputFileBase() 
+        t << "  " << dd->getOutputFileBase() << " [shape=box, label=\""
+        << dd->shortName() << "\", style=\"filled\", fillcolor=\"";
+        t << DotColorRules::getColor(dd, "white");
+        t << "\","
+        << " pencolor=\"black\", URL=\"" << dd->getOutputFileBase()
         << Doxygen::htmlFileExtension << "\"];\n";
     }
     if (dd->parent())
@@ -4794,31 +4931,33 @@ void writeDotDirDepGraph(FTextStream &t,DirDef *dd,bool linkRelations)
       DirDef *dir=dd;
       while (dir)
       {
-        //printf("*** check relation %s->%s same_parent=%d !%s->isParentOf(%s)=%d\n",
-        //    dir->shortName().data(),usedDir->shortName().data(),
-        //    dir->parent()==usedDir->parent(),
-        //    usedDir->shortName().data(),
-        //    shortName().data(),
-        //    !usedDir->isParentOf(this)
-        //    );
-        if (dir!=usedDir && dir->parent()==usedDir->parent() && 
-            !usedDir->isParentOf(dd))
-          // include if both have the same parent (or no parent)
-        {
-          t << "  " << usedDir->getOutputFileBase() << " [shape=box label=\"" 
-            << usedDir->shortName() << "\"";
-          if (usedDir->isCluster())
-          {
-            if (!Config_getBool(DOT_TRANSPARENT))
+            //printf("*** check relation %s->%s same_parent=%d !%s->isParentOf(%s)=%d\n",
+            //    dir->shortName().data(),usedDir->shortName().data(),
+            //    dir->parent()==usedDir->parent(),
+            //    usedDir->shortName().data(),
+            //    shortName().data(),
+            //    !usedDir->isParentOf(this)
+            //    );
+            if (dir!=usedDir && dir->parent()==usedDir->parent() &&
+                !usedDir->isParentOf(dd))
+                // include if both have the same parent (or no parent)
             {
-              t << " fillcolor=\"white\" style=\"filled\"";
-            }
-            t << " color=\"red\"";
-          }
-          t << " URL=\"" << usedDir->getOutputFileBase() 
-            << Doxygen::htmlFileExtension << "\"];\n";
-          dirsInGraph.insert(usedDir->getOutputFileBase(),usedDir);
-          break;
+                t << "  " << usedDir->getOutputFileBase() << " [shape=box label=\""
+                << usedDir->shortName() << "\"";
+                if (usedDir->isCluster())
+                {
+                    if (!Config_getBool(DOT_TRANSPARENT))
+                    {
+                        t << " fillcolor=\"";
+                        t << DotColorRules::getColor(usedDir, "white");
+                        t << "\" style=\"filled\"";
+                    }
+                    t << " color=\"red\"";
+                }
+                t << " URL=\"" << usedDir->getOutputFileBase()
+                << Doxygen::htmlFileExtension << "\"];\n";
+                dirsInGraph.insert(usedDir->getOutputFileBase(),usedDir);
+                break;
         }
         dir=dir->parent();
       }

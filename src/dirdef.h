@@ -48,6 +48,7 @@ class DirDef : public Definition
     virtual ~DirDef();
 
     // accessors
+    QCString getPath() const { return m_path; }
     DefType definitionType() const { return TypeDir; }
     QCString getOutputFileBase() const;
     QCString anchor() const { return QCString(); }
@@ -97,6 +98,7 @@ class DirDef : public Definition
     void computeDependencies();
 
     DirList m_subdirs;
+    QCString m_path;
     QCString m_dispName;
     QCString m_shortName;
     QCString m_diskName;

@@ -3187,6 +3187,35 @@ to be found in the default search path.
 ]]>
       </docs>
     </option>
+    <option type='list' id='DOT_COLOR_RULES_EXACT' format='string'>                            
+      <docs>                                                                                     
+          <![CDATA[                                                                              
+ This tag can be used to specify a color rules for labels in dot graphs. A rule has the form:    
+\verbatim                                                                                        
+ label=fillcolor                                                                                 
+\endverbatim                                                                                     
+ Example:                                                                                        
+\verbatim
+ "iostream=orange\n"
+\endverbatim
+]]>
+      </docs>
+    </option>
+
+      <option type='list' id='DOT_COLOR_RULES_REGEX' format='string'>
+      <docs>
+          <![CDATA[
+ This tag can be used to specify a color rules for labels in dot graphs. A rule has the form:
+\verbatim
+ labelregex=fillcolor
+\endverbatim
+ Example:
+\verbatim
+ "*cpp=orange\n"
+\endverbatim
+]]>
+      </docs>
+    </option>
     <option type='int' id='DOT_FONTSIZE' minval='4' maxval='24' defval='10' depends='HAVE_DOT'>
       <docs>
 <![CDATA[

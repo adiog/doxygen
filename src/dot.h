@@ -90,6 +90,9 @@ class DotNode
     TruncState isTruncated() const { return m_truncated; }
     int distance() const { return m_distance; }
     void renumberNodes(int &number);
+    void setPath(const QCString &path) { m_path = path; }
+    QCString getPath() const { return m_path; }
+    QCString getLabel() const { return m_label; }
 
   private:
     void colorConnectedNodes(int curColor);
@@ -116,6 +119,7 @@ class DotNode
     bool             m_visible;   //!< is the node visible in the output
     TruncState       m_truncated; //!< does the node have non-visible children/parents
     int              m_distance;  //!< shortest path to the root node
+    QCString         m_path;
 
     friend class DotGfxHierarchyTable;
     friend class DotClassGraph;

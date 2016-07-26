@@ -40,7 +40,8 @@ DirDef::DirDef(const char *path) : Definition(path,1,1,path), visited(FALSE)
   { // strip trailing /
     m_dispName = m_dispName.left(m_dispName.length()-1);
   }
-  
+
+  m_path = path;
   m_fileList   = new FileList;
   m_usedDirs   = new QDict<UsedDir>(257);
   m_usedDirs->setAutoDelete(TRUE);
