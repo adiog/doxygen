@@ -408,6 +408,10 @@ void NamespaceDef::writeBriefDescription(OutputList &ol)
     if (rootNode && !rootNode->isEmpty())
     {
       ol.startParagraph();
+      ol.pushGeneratorState();
+      ol.disableAllBut(OutputGenerator::Man);
+      ol.writeString(" - ");
+      ol.popGeneratorState();
       ol.writeDoc(rootNode,this,0);
       ol.pushGeneratorState();
       ol.disable(OutputGenerator::RTF);
@@ -814,7 +818,7 @@ QCString NamespaceDef::getOutputFileBase() const
   return fileName;
 }
 
-Definition *NamespaceDef::findInnerCompound(const char *n)
+Definition *NamespaceDef::findInnerCompound(const char *n) const
 {
   if (n==0) return 0;
   Definition *d = m_innerCompounds->find(n);

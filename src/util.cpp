@@ -329,7 +329,8 @@ int guessSection(const char *name)
       n.right(4)==".ipp"  ||
       n.right(4)==".i++"  ||
       n.right(4)==".inl"  ||
-      n.right(4)==".xml" 
+      n.right(4)==".xml"  ||
+      n.right(4)==".sql" 
      ) return Entry::SOURCE_SEC;
   if (n.right(2)==".h"   || // header
       n.right(3)==".hh"  ||
@@ -515,14 +516,14 @@ static QDict<MemberDef> g_resolvedTypedefs;
 static QDict<Definition> g_visitedNamespaces;
 
 // forward declaration
-static ClassDef *getResolvedClassRec(Definition *scope,
-                              FileDef *fileScope,
+static ClassDef *getResolvedClassRec(const Definition *scope,
+                              const FileDef *fileScope,
                               const char *n,
                               MemberDef **pTypeDef,
                               QCString *pTemplSpec,
                               QCString *pResolvedType
                              );
-int isAccessibleFromWithExpScope(Definition *scope,FileDef *fileScope,Definition *item,
+int isAccessibleFromWithExpScope(const Definition *scope,const FileDef *fileScope,const Definition *item,
                      const QCString &explicitScopePart);
 
 /*! Returns the class representing the value of the typedef represented by \a md
@@ -532,7 +533,7 @@ int isAccessibleFromWithExpScope(Definition *scope,FileDef *fileScope,Definition
  * 
  *  Example: typedef int T; will return 0, since "int" is not a class.
  */
-ClassDef *newResolveTypedef(FileDef *fileScope,MemberDef *md,
+ClassDef *newResolveTypedef(const FileDef *fileScope,MemberDef *md,
                             MemberDef **pMemType,QCString *pTemplSpec,
                             QCString *pResolvedType,
                             ArgumentList *actTemplParams)
@@ -663,7 +664,7 @@ done:
 /*! Substitutes a simple unqualified \a name within \a scope. Returns the
  *  value of the typedef or \a name if no typedef was found.
  */
-static QCString substTypedef(Definition *scope,FileDef *fileScope,const QCString &name,
+static QCString substTypedef(const Definition *scope,const FileDef *fileScope,const QCString &name,
             MemberDef **pTypeDef=0)
 {
   QCString result=name;
@@ -749,11 +750,11 @@ static Definition *endOfPathIsUsedClass(SDict<Definition> *cl,const QCString &lo
  *  searched. If found the scope definition is returned, otherwise 0 
  *  is returned.
  */
-static Definition *followPath(Definition *start,FileDef *fileScope,const QCString &path)
+static const Definition *followPath(const Definition *start,const FileDef *fileScope,const QCString &path)
 {
   int is,ps;
   int l;
-  Definition *current=start;
+  const Definition *current=start;
   ps=0;
   //printf("followPath: start='%s' path='%s'\n",start?start->name().data():"<none>",path.data());
   // for each part of the explicit scope
@@ -772,7 +773,7 @@ static Definition *followPath(Definition *start,FileDef *fileScope,const QCStrin
         return type;
       }
     }
-    Definition *next = current->findInnerCompound(qualScopePart);
+    const Definition *next = current->findInnerCompound(qualScopePart);
     //printf("++ Looking for %s inside %s result %s\n",
     //     qualScopePart.data(),
     //     current->name().data(),
@@ -806,8 +807,8 @@ static Definition *followPath(Definition *start,FileDef *fileScope,const QCStrin
 }
 
 bool accessibleViaUsingClass(const SDict<Definition> *cl,
-                             FileDef *fileScope,
-                             Definition *item,
+                             const FileDef *fileScope,
+                             const Definition *item,
                              const QCString &explicitScopePart=""
                             )
 {
@@ -820,7 +821,7 @@ bool accessibleViaUsingClass(const SDict<Definition> *cl,
     for (cli.toFirst();(ucd=cli.current());++cli)
     {
       //printf("Trying via used class %s\n",ucd->name().data());
-      Definition *sc = explicitScopePartEmpty ? ucd : followPath(ucd,fileScope,explicitScopePart);
+      const Definition *sc = explicitScopePartEmpty ? ucd : followPath(ucd,fileScope,explicitScopePart);
       if (sc && sc==item) return TRUE; 
       //printf("Try via used class done\n");
     }
@@ -829,8 +830,8 @@ bool accessibleViaUsingClass(const SDict<Definition> *cl,
 }
 
 bool accessibleViaUsingNamespace(const NamespaceSDict *nl,
-                                 FileDef *fileScope,
-                                 Definition *item,
+                                 const FileDef *fileScope,
+                                 const Definition *item,
                                  const QCString &explicitScopePart="")
 {
   static QDict<void> visitedDict;
@@ -843,7 +844,7 @@ bool accessibleViaUsingNamespace(const NamespaceSDict *nl,
     {
       //printf("[Trying via used namespace %s: count=%d/%d\n",und->name().data(),
       //    count,nl->count());
-      Definition *sc = explicitScopePart.isEmpty() ? und : followPath(und,fileScope,explicitScopePart);
+      const Definition *sc = explicitScopePart.isEmpty() ? und : followPath(und,fileScope,explicitScopePart);
       if (sc && item->getOuterScope()==sc) 
       {
         //printf("] found it\n");
@@ -877,7 +878,7 @@ class AccessStack
 {
   public:
     AccessStack() : m_index(0) {}
-    void push(Definition *scope,FileDef *fileScope,Definition *item)
+    void push(const Definition *scope,const FileDef *fileScope,const Definition *item)
     {
       if (m_index<MAX_STACK_SIZE)
       {
@@ -887,7 +888,7 @@ class AccessStack
         m_index++;
       }
     }
-    void push(Definition *scope,FileDef *fileScope,Definition *item,const QCString &expScope)
+    void push(const Definition *scope,const FileDef *fileScope,const Definition *item,const QCString &expScope)
     {
       if (m_index<MAX_STACK_SIZE)
       {
@@ -902,7 +903,7 @@ class AccessStack
     {
       if (m_index>0) m_index--;
     }
-    bool find(Definition *scope,FileDef *fileScope, Definition *item)
+    bool find(const Definition *scope,const FileDef *fileScope, const Definition *item)
     {
       int i=0;
       for (i=0;i<m_index;i++)
@@ -915,7 +916,7 @@ class AccessStack
       }
       return FALSE;
     }
-    bool find(Definition *scope,FileDef *fileScope, Definition *item,const QCString &expScope)
+    bool find(const Definition *scope,const FileDef *fileScope, const Definition *item,const QCString &expScope)
     {
       int i=0;
       for (i=0;i<m_index;i++)
@@ -933,9 +934,9 @@ class AccessStack
     /** Element in the stack. */
     struct AccessElem
     {
-      Definition *scope;
-      FileDef *fileScope;
-      Definition *item;
+      const Definition *scope;
+      const FileDef *fileScope;
+      const Definition *item;
       QCString expScope;
     };
     int m_index;
@@ -945,7 +946,7 @@ class AccessStack
 /* Returns the "distance" (=number of levels up) from item to scope, or -1
  * if item in not inside scope. 
  */
-int isAccessibleFrom(Definition *scope,FileDef *fileScope,Definition *item)
+int isAccessibleFrom(const Definition *scope,const FileDef *fileScope,const Definition *item)
 {
   //printf("<isAccesibleFrom(scope=%s,item=%s itemScope=%s)\n",
   //    scope->name().data(),item->name().data(),item->getOuterScope()->name().data());
@@ -1048,8 +1049,8 @@ done:
  *   not found and then A::I is searched in the global scope, which matches and 
  *   thus the result is 1.
  */
-int isAccessibleFromWithExpScope(Definition *scope,FileDef *fileScope,
-                     Definition *item,const QCString &explicitScopePart)
+int isAccessibleFromWithExpScope(const Definition *scope,const FileDef *fileScope,
+                     const Definition *item,const QCString &explicitScopePart)
 {
   if (explicitScopePart.isEmpty())
   {
@@ -1069,7 +1070,7 @@ int isAccessibleFromWithExpScope(Definition *scope,FileDef *fileScope,
   //                                      item?item->name().data():"<none>",
   //                                      explicitScopePart.data());
   int result=0; // assume we found it
-  Definition *newScope = followPath(scope,fileScope,explicitScopePart);
+  const Definition *newScope = followPath(scope,fileScope,explicitScopePart);
   if (newScope)  // explicitScope is inside scope => newScope is the result
   {
     Definition *itemScope = item->getOuterScope();
@@ -1206,8 +1207,8 @@ int computeQualifiedIndex(const QCString &name)
   return name.findRev("::",i==-1 ? name.length() : i);
 }
 
-static void getResolvedSymbol(Definition *scope,
-                       FileDef *fileScope,
+static void getResolvedSymbol(const Definition *scope,
+                       const FileDef *fileScope,
                        Definition *d, 
                        const QCString &explicitScopePart,
                        ArgumentList *actTemplParams,
@@ -1371,8 +1372,8 @@ static void getResolvedSymbol(Definition *scope,
  * match against the input name. Can recursively call itself when 
  * resolving typedefs.
  */
-static ClassDef *getResolvedClassRec(Definition *scope,
-    FileDef *fileScope,
+static ClassDef *getResolvedClassRec(const Definition *scope,
+    const FileDef *fileScope,
     const char *n,
     MemberDef **pTypeDef,
     QCString *pTemplSpec,
@@ -1560,8 +1561,8 @@ static ClassDef *getResolvedClassRec(Definition *scope,
  * Loops through scope and each of its parent scopes looking for a
  * match against the input name. 
  */
-ClassDef *getResolvedClass(Definition *scope,
-    FileDef *fileScope,
+ClassDef *getResolvedClass(const Definition *scope,
+    const FileDef *fileScope,
     const char *n,
     MemberDef **pTypeDef,
     QCString *pTemplSpec,
@@ -1887,9 +1888,10 @@ QCString removeRedundantWhiteSpace(const QCString &s)
         {
           if (g_charAroundSpace.charMap[(uchar)pc].before &&
               g_charAroundSpace.charMap[(uchar)nc].after  &&
-              !(pc==',' && nc=='.'))
-            // remove spaces/tabs
-          {
+              !(pc==',' && nc=='.') &&
+              (osp<8 || (osp>=8 && isId(nc))) // e.g. "operator >>" -> "operator>>", but not "operator int" -> operatorint"
+             )
+          { // keep space
             *dst++=' ';
           }
         }
@@ -1915,6 +1917,7 @@ QCString removeRedundantWhiteSpace(const QCString &s)
     pc=c;
   }
   *dst++='\0';
+  //printf("removeRedundantWhitespace(%s)->%s\n",s.data(),growBuf);
   return growBuf;
 }
 
@@ -1990,8 +1993,8 @@ bool leftScopeMatch(const QCString &scope, const QCString &name)
 }
 
 
-void linkifyText(const TextGeneratorIntf &out,Definition *scope,
-    FileDef *fileScope,Definition *self,
+void linkifyText(const TextGeneratorIntf &out, const Definition *scope,
+    const FileDef *fileScope,const Definition *self,
     const char *text, bool autoBreak,bool external,
     bool keepSpaces,int indentLevel)
 {
@@ -2158,10 +2161,16 @@ void linkifyText(const TextGeneratorIntf &out,Definition *scope,
         if (md!=self && (self==0 || md->name()!=self->name())) 
           // name check is needed for overloaded members, where getDefs just returns one
         {
-          out.writeLink(md->getReference(),md->getOutputFileBase(),
-              md->anchor(),word);
-          //printf("found symbol %s\n",matchWord.data());
-          found=TRUE;
+          /* in case of Fortran scop and the variable is a non Fortran variable: don't link,
+           * see also getLink in fortrancode.l
+           */
+          if (!(scope && (scope->getLanguage() == SrcLangExt_Fortran) && md->isVariable() && (md->getLanguage() != SrcLangExt_Fortran)))
+          {
+            out.writeLink(md->getReference(),md->getOutputFileBase(),
+                md->anchor(),word);
+            //printf("found symbol %s\n",matchWord.data());
+            found=TRUE;
+          }
         }
       }
     }
@@ -2266,6 +2275,8 @@ QCString argListToString(ArgumentList *al,bool useCanonicalType,bool showDefVals
   result+=")";
   if (al->constSpecifier) result+=" const";
   if (al->volatileSpecifier) result+=" volatile";
+  if (al->refQualifier==RefQualifierLValue) result+=" &";
+  else if (al->refQualifier==RefQualifierRValue) result+=" &&";
   if (!al->trailingReturnType.isEmpty()) result+=" -> "+al->trailingReturnType;
   if (al->pureSpecifier) result+=" =0";
   return removeRedundantWhiteSpace(result);
@@ -3360,6 +3371,12 @@ bool matchArguments(ArgumentList *srcAl,ArgumentList *dstAl,
     }
   }
 
+  if (srcAl->refQualifier != dstAl->refQualifier)
+  {
+    NOMATCH
+    return FALSE; // one member is has a different ref-qualifier than the other
+  }
+
   // so far the argument list could match, so we need to compare the types of
   // all arguments.
   ArgumentListIterator srcAli(*srcAl),dstAli(*dstAl);
@@ -3793,6 +3810,12 @@ bool matchArguments2(Definition *srcScope,FileDef *srcFileScope,ArgumentList *sr
     }
   }
 
+  if (srcAl->refQualifier != dstAl->refQualifier)
+  {
+    NOMATCH
+    return FALSE; // one member is has a different ref-qualifier than the other
+  }
+
   // so far the argument list could match, so we need to compare the types of
   // all arguments.
   ArgumentListIterator srcAli(*srcAl),dstAli(*dstAl);
@@ -3956,7 +3979,7 @@ static void findMembersWithSpecificName(MemberName *mn,
 {
   //printf("  Function with global scope name `%s' args=`%s'\n",
   //       mn->memberName(),args);
-  MemberListIterator mli(*mn);
+  MemberNameIterator mli(*mn);
   MemberDef *md;
   for (mli.toFirst();(md=mli.current());++mli)
   {
@@ -4103,7 +4126,7 @@ bool getDefs(const QCString &scName,
          )
       {
         //printf("  Found fcd=%p\n",fcd);
-        MemberListIterator mmli(*mn);
+        MemberNameIterator mmli(*mn);
         MemberDef *mmd;
         int mdist=maxInheritanceDepth; 
         ArgumentList *argList=0;
@@ -4227,7 +4250,7 @@ bool getDefs(const QCString &scName,
   if (mn && scopeName.isEmpty() && mScope.isEmpty()) // Maybe a related function?
   {
     //printf("Global symbol\n");
-    MemberListIterator mmli(*mn);
+    MemberNameIterator mmli(*mn);
     MemberDef *mmd, *fuzzy_mmd = 0;
     ArgumentList *argList = 0;
     bool hasEmptyArgs = args && qstrcmp(args, "()") == 0;
@@ -4295,7 +4318,7 @@ bool getDefs(const QCString &scName,
         //printf("Symbol inside existing namespace `%s' count=%d\n",
         //    namespaceName.data(),mn->count());
         bool found=FALSE;
-        MemberListIterator mmli(*mn);
+        MemberNameIterator mmli(*mn);
         MemberDef *mmd;
         for (mmli.toFirst();((mmd=mmli.current()) && !found);++mmli)
         {
@@ -4379,7 +4402,7 @@ bool getDefs(const QCString &scName,
       else
       {
         //printf("not a namespace\n");
-        MemberListIterator mmli(*mn);
+        MemberNameIterator mmli(*mn);
         MemberDef *mmd;
         for (mmli.toFirst();(mmd=mmli.current());++mmli)
         {
@@ -4430,7 +4453,7 @@ bool getDefs(const QCString &scName,
       {
         // no exact match found, but if args="()" an arbitrary
         // member will do
-        MemberListIterator mni(*mn);
+        MemberNameIterator mni(*mn);
         for (mni.toLast();(md=mni.current());--mni)
         {
           //printf("Found member `%s'\n",md->name().data());
@@ -6131,7 +6154,7 @@ QCString normalizeNonTemplateArgumentsInString(
   p++;
   QCString result = name.left(p);
 
-  static QRegExp re("[a-z_A-Z\\x80-\\xFF][a-z_A-Z0-9\\x80-\\xFF]*");
+  static QRegExp re("[a-z:_A-Z\\x80-\\xFF][a-z:_A-Z0-9\\x80-\\xFF]*");
   int l,i;
   // for each identifier in the template part (e.g. B<T> -> T)
   while ((i=re.match(name,p,&l))!=-1)
@@ -6710,6 +6733,8 @@ void filterLatexString(FTextStream &t,const char *str,
                    break;           
         case '"':  t << "\\char`\\\"{}";
                    break;
+        case '`':  t << "\\`{}";
+                   break;
         case '\'': t << "\\textquotesingle{}";
                    break;
         case ' ':  if (keepSpaces) { if (insideTabbing) t << "\\>"; else t << '~'; } else t << ' ';
@@ -6744,6 +6769,7 @@ QCString latexEscapeLabelName(const char *s,bool insideTabbing)
     {
       case '|': t << "\\texttt{\"|}"; break;
       case '!': t << "\"!"; break;
+      case '@': t << "\"@"; break;
       case '%': t << "\\%";       break;
       case '{': t << "\\lcurly{}"; break;
       case '}': t << "\\rcurly{}"; break;
@@ -6753,7 +6779,7 @@ QCString latexEscapeLabelName(const char *s,bool insideTabbing)
         i=0;
         // collect as long string as possible, before handing it to docify
         tmp[i++]=c;
-        while ((c=*p) && c!='|' && c!='!' && c!='%' && c!='{' && c!='}' && c!='~')
+        while ((c=*p) && c!='@' && c!='[' && c!=']' && c!='!' && c!='{' && c!='}' && c!='|')
         {
           tmp[i++]=c;
           p++;
@@ -7044,6 +7070,7 @@ g_lang2extMap[] =
   { "fortranfixed", "fortranfixed", SrcLangExt_Fortran  },
   { "vhdl",        "vhdl",          SrcLangExt_VHDL     },
   { "xml",         "xml",           SrcLangExt_XML      },
+  { "sql",         "sql",           SrcLangExt_SQL      },
   { "tcl",         "tcl",           SrcLangExt_Tcl      },
   { "md",          "md",            SrcLangExt_Markdown },
   { 0,             0,              (SrcLangExt)0        }
@@ -7132,6 +7159,9 @@ void initDefaultExtensionMapping()
   updateLanguageMapping(".f",        "fortran");
   updateLanguageMapping(".for",      "fortran");
   updateLanguageMapping(".f90",      "fortran");
+  updateLanguageMapping(".f95",      "fortran");
+  updateLanguageMapping(".f03",      "fortran");
+  updateLanguageMapping(".f08",      "fortran");
   updateLanguageMapping(".vhd",      "vhdl");
   updateLanguageMapping(".vhdl",     "vhdl");
   updateLanguageMapping(".tcl",      "tcl");
@@ -7144,6 +7174,7 @@ void initDefaultExtensionMapping()
 void addCodeOnlyMappings()
 {
   updateLanguageMapping(".xml",   "xml");
+  updateLanguageMapping(".sql",   "sql");
 }
 
 SrcLangExt getLanguageFromFileName(const QCString fileName)
@@ -8082,6 +8113,7 @@ bool copyFile(const QCString &src,const QCString &dest)
 
 /** Returns the section of text, in between a pair of markers. 
  *  Full lines are returned, excluding the lines on which the markers appear.
+ *  \sa routine lineBlock
  */
 QCString extractBlock(const QCString text,const QCString marker)
 {
@@ -8125,6 +8157,29 @@ QCString extractBlock(const QCString text,const QCString marker)
   return l2>l1 ? text.mid(l1,l2-l1) : QCString();
 }
 
+/** Returns the line number of the line following the line with the marker.
+ *  \sa routine extractBlock
+ */
+int lineBlock(const QCString text,const QCString marker)
+{
+  int result = 1;
+  int p=0,i;
+  bool found=FALSE;
+
+  // find the character positions of the first marker
+  int m1 = text.find(marker);
+  if (m1==-1) return result;
+
+  // find start line positions for the markers
+  while (!found && (i=text.find('\n',p))!=-1)
+  {
+    found = (p<=m1 && m1<i); // found the line with the start marker
+    p=i+1;
+    result++;
+  }
+  return result;
+}
+
 /** Returns a string representation of \a lang. */
 QCString langToString(SrcLangExt lang)
 {
@@ -8143,6 +8198,7 @@ QCString langToString(SrcLangExt lang)
     case SrcLangExt_Fortran:  return "Fortran";
     case SrcLangExt_VHDL:     return "VHDL";
     case SrcLangExt_XML:      return "XML";
+    case SrcLangExt_SQL:      return "SQL";
     case SrcLangExt_Tcl:      return "Tcl";
     case SrcLangExt_Markdown: return "Markdown";
   }
@@ -8368,7 +8424,7 @@ uint getUtf8CodeToLower( const QCString& s, int idx )
 }
 
 
-/*! @brief Returns one unicode character as ian unsigned interger 
+/*! @brief Returns one unicode character as an unsigned integer 
  *  from utf-8 string, making the character upper case if it was lower case.
  *
  * @param s utf-8 encoded string

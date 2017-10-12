@@ -257,10 +257,11 @@ class Definition : public DefinitionIntf
     SrcLangExt getLanguage() const;
 
     GroupList *partOfGroups() const;
+    bool isLinkableViaGroup() const;
 
     QList<ListItemInfo> *xrefListItems() const;
 
-    virtual Definition *findInnerCompound(const char *name);
+    virtual Definition *findInnerCompound(const char *name) const ;
     virtual Definition *getOuterScope() const;
 
     MemberSDict *getReferencesMembers() const;

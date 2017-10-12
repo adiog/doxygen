@@ -73,7 +73,7 @@ set_source_files_properties(${GENERATED_SRC}/ce_parse.h PROPERTIES GENERATED 1)
 # lang_cfg.h
 add_custom_command(
     COMMENT  "Generating ${GENERATED_SRC}/lang_cfg.h"
-    COMMAND ${CMAKE_COMMAND} -P ${CMAKE_SOURCE_DIR}/cmake/lang_cfg.cmake ${LANG_CODES} 2> ${GENERATED_SRC}/lang_cfg.h
+    COMMAND ${CMAKE_COMMAND} -P ${CMAKE_SOURCE_DIR}/cmake/lang_cfg.cmake ${GENERATED_SRC}/lang_cfg.h ${LANG_CODES}
     DEPENDS ${LANGUAGE_FILES}
     OUTPUT ${GENERATED_SRC}/lang_cfg.h
 )
@@ -100,26 +100,26 @@ add_custom_command(
 set_source_files_properties(${GENERATED_SRC}/layout_default.xml.h PROPERTIES GENERATED 1)
 
 # Targets for flex/bison   generated files
-FLEX_TARGET(scanner        scanner.l        ${GENERATED_SRC}/scanner.cpp        COMPILE_FLAGS "${LEX_FLAGS} -PscannerYY")
-FLEX_TARGET(code           code.l           ${GENERATED_SRC}/code.cpp           COMPILE_FLAGS "${LEX_FLAGS} -PcodeYY")
-FLEX_TARGET(pyscanner      pyscanner.l      ${GENERATED_SRC}/pyscanner.cpp      COMPILE_FLAGS "${LEX_FLAGS} -PpyscannerYY")
-FLEX_TARGET(pycode         pycode.l         ${GENERATED_SRC}/pycode.cpp         COMPILE_FLAGS "${LEX_FLAGS} -PpycodeYY")
-FLEX_TARGET(fortranscanner fortranscanner.l ${GENERATED_SRC}/fortranscanner.cpp COMPILE_FLAGS "${LEX_FLAGS} -PfortranscannerYY -i")
-FLEX_TARGET(fortrancode    fortrancode.l    ${GENERATED_SRC}/fortrancode.cpp    COMPILE_FLAGS "${LEX_FLAGS} -PfortrancodeYY -i")
-FLEX_TARGET(vhdlcode       vhdlcode.l       ${GENERATED_SRC}/vhdlcode.cpp       COMPILE_FLAGS "${LEX_FLAGS} -PvhdlcodeYY -i")
-FLEX_TARGET(tclscanner     tclscanner.l     ${GENERATED_SRC}/tclscanner.cpp     COMPILE_FLAGS "${LEX_FLAGS} -PtclscannerYY -i")
-FLEX_TARGET(pre            pre.l            ${GENERATED_SRC}/pre.cpp            COMPILE_FLAGS "${LEX_FLAGS} -PpreYY")
-FLEX_TARGET(declinfo       declinfo.l       ${GENERATED_SRC}/declinfo.cpp       COMPILE_FLAGS "${LEX_FLAGS} -PdeclinfoYY")
-FLEX_TARGET(defargs        defargs.l        ${GENERATED_SRC}/defargs.cpp        COMPILE_FLAGS "${LEX_FLAGS} -PdefargsYY")
-FLEX_TARGET(doctokenizer   doctokenizer.l   ${GENERATED_SRC}/doctokenizer.cpp   COMPILE_FLAGS "${LEX_FLAGS} -PdoctokenizerYY")
-FLEX_TARGET(commentcnv     commentcnv.l     ${GENERATED_SRC}/commentcnv.cpp     COMPILE_FLAGS "${LEX_FLAGS} -PcommentcnvYY")
-FLEX_TARGET(commentscan    commentscan.l    ${GENERATED_SRC}/commentscan.cpp    COMPILE_FLAGS "${LEX_FLAGS} -PcommentscanYY")
-FLEX_TARGET(constexp       constexp.l       ${GENERATED_SRC}/constexp.cpp       COMPILE_FLAGS "${LEX_FLAGS} -PconstexpYY")
-FLEX_TARGET(xmlcode        xmlcode.l        ${GENERATED_SRC}/xmlcode.cpp        COMPILE_FLAGS "${LEX_FLAGS} -PxmlcodeYY")
-FLEX_TARGET(configimpl     configimpl.l     ${GENERATED_SRC}/configimpl.cpp     COMPILE_FLAGS "${LEX_FLAGS} -PconfigimplYY")
+FLEX_TARGET(scanner        scanner.l        ${GENERATED_SRC}/scanner.cpp        COMPILE_FLAGS "${LEX_FLAGS}")
+FLEX_TARGET(code           code.l           ${GENERATED_SRC}/code.cpp           COMPILE_FLAGS "${LEX_FLAGS}")
+FLEX_TARGET(pyscanner      pyscanner.l      ${GENERATED_SRC}/pyscanner.cpp      COMPILE_FLAGS "${LEX_FLAGS}")
+FLEX_TARGET(pycode         pycode.l         ${GENERATED_SRC}/pycode.cpp         COMPILE_FLAGS "${LEX_FLAGS}")
+FLEX_TARGET(fortranscanner fortranscanner.l ${GENERATED_SRC}/fortranscanner.cpp COMPILE_FLAGS "${LEX_FLAGS}")
+FLEX_TARGET(fortrancode    fortrancode.l    ${GENERATED_SRC}/fortrancode.cpp    COMPILE_FLAGS "${LEX_FLAGS}")
+FLEX_TARGET(vhdlcode       vhdlcode.l       ${GENERATED_SRC}/vhdlcode.cpp       COMPILE_FLAGS "${LEX_FLAGS}")
+FLEX_TARGET(tclscanner     tclscanner.l     ${GENERATED_SRC}/tclscanner.cpp     COMPILE_FLAGS "${LEX_FLAGS}")
+FLEX_TARGET(pre            pre.l            ${GENERATED_SRC}/pre.cpp            COMPILE_FLAGS "${LEX_FLAGS}")
+FLEX_TARGET(declinfo       declinfo.l       ${GENERATED_SRC}/declinfo.cpp       COMPILE_FLAGS "${LEX_FLAGS}")
+FLEX_TARGET(defargs        defargs.l        ${GENERATED_SRC}/defargs.cpp        COMPILE_FLAGS "${LEX_FLAGS}")
+FLEX_TARGET(doctokenizer   doctokenizer.l   ${GENERATED_SRC}/doctokenizer.cpp   COMPILE_FLAGS "${LEX_FLAGS}")
+FLEX_TARGET(commentcnv     commentcnv.l     ${GENERATED_SRC}/commentcnv.cpp     COMPILE_FLAGS "${LEX_FLAGS}")
+FLEX_TARGET(commentscan    commentscan.l    ${GENERATED_SRC}/commentscan.cpp    COMPILE_FLAGS "${LEX_FLAGS}")
+FLEX_TARGET(constexp       constexp.l       ${GENERATED_SRC}/constexp.cpp       COMPILE_FLAGS "${LEX_FLAGS}")
+FLEX_TARGET(xmlcode        xmlcode.l        ${GENERATED_SRC}/xmlcode.cpp        COMPILE_FLAGS "${LEX_FLAGS}")
+FLEX_TARGET(sqlcode        sqlcode.l        ${GENERATED_SRC}/sqlcode.cpp        COMPILE_FLAGS "${LEX_FLAGS}")
+FLEX_TARGET(configimpl     configimpl.l     ${GENERATED_SRC}/configimpl.cpp     COMPILE_FLAGS "${LEX_FLAGS}")
 
-BISON_TARGET(vhdlparser    vhdlparser.y     ${GENERATED_SRC}/vhdlparser.cpp     COMPILE_FLAGS "${YACC_FLAGS} -l -p vhdlscannerYY")
-BISON_TARGET(constexp      constexp.y       ${GENERATED_SRC}/ce_parse.cpp       COMPILE_FLAGS "${YACC_FLAGS} -l -p constexpYY")
+BISON_TARGET(constexp      constexp.y       ${GENERATED_SRC}/ce_parse.cpp       COMPILE_FLAGS ${YACC_FLAGS})
 
 add_library(doxycfg STATIC
     ${GENERATED_SRC}/lang_cfg.h
@@ -157,6 +157,7 @@ add_library(_doxygen STATIC
     ${GENERATED_SRC}/commentscan.cpp
     ${GENERATED_SRC}/constexp.cpp
     ${GENERATED_SRC}/xmlcode.cpp
+    ${GENERATED_SRC}/sqlcode.cpp
     #
     ${GENERATED_SRC}/ce_parse.cpp
     #
@@ -243,6 +244,26 @@ add_library(_doxygen STATIC
 )
 
 add_executable(doxygen main.cpp)
+
+if (use_libclang)
+    find_package(LLVM REQUIRED CONFIG)
+    find_package(Clang REQUIRED CONFIG)
+    if (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
+        target_compile_features(_doxygen PRIVATE cxx_alignof)
+        target_compile_features(doxygen PRIVATE cxx_alignof)
+        target_compile_options(_doxygen PRIVATE -stdlib=libc++ -std=c++11)
+        target_compile_options(doxygen PRIVATE -stdlib=libc++ -std=c++11)
+    elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
+        target_compile_options(_doxygen PRIVATE -std=c++11)
+        target_compile_options(doxygen PRIVATE -std=c++11)
+    endif()
+    include_directories(${LLVM_INCLUDE_DIRS})
+    add_definitions(${LLVM_DEFINITIONS})
+    llvm_map_components_to_libnames(llvm_libs support core option)
+    target_compile_definitions(doxygen PRIVATE ${LLVM_DEFINITIONS})
+    set(CLANG_LIBS libclang clangTooling ${llvm_libs})
+endif()
+
 target_link_libraries(doxygen
     _doxygen
     doxycfg

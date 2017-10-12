@@ -149,6 +149,7 @@
     <xsd:attribute name="const" type="DoxBool" use="optional"/>
     <xsd:attribute name="explicit" type="DoxBool" use="optional"/>
     <xsd:attribute name="inline" type="DoxBool" use="optional"/>
+    <xsd:attribute name="refqual" type="DoxRefQualifierKind" use="optional"/>
     <xsd:attribute name="virt" type="DoxVirtualKind" use="optional"/>
     <xsd:attribute name="volatile" type="DoxBool" use="optional"/>
     <xsd:attribute name="mutable" type="DoxBool" use="optional"/>
@@ -263,6 +264,7 @@
     <xsd:sequence>
       <xsd:element name="codeline" type="codelineType" minOccurs="0" maxOccurs="unbounded" />
     </xsd:sequence>
+    <xsd:attribute name="language" type="DoxLanguage" use="optional"/>
   </xsd:complexType>
 
   <xsd:complexType name="codelineType">
@@ -689,6 +691,13 @@
     </xsd:restriction>
   </xsd:simpleType>
 
+  <xsd:simpleType name="DoxRefQualifierKind">
+    <xsd:restriction base="xsd:string">
+      <xsd:enumeration value="lvalue" />
+      <xsd:enumeration value="rvalue" />
+    </xsd:restriction>
+  </xsd:simpleType>
+
   <xsd:simpleType name="DoxLanguage">
     <xsd:restriction base="xsd:string">
       <xsd:enumeration value="Unknown" />
@@ -704,6 +713,7 @@
       <xsd:enumeration value="Fortran" />
       <xsd:enumeration value="VHDL" />
       <xsd:enumeration value="XML" />
+      <xsd:enumeration value="SQL" />
       <xsd:enumeration value="Tcl" />
       <xsd:enumeration value="Markdown" />
     </xsd:restriction>

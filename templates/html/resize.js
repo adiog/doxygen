@@ -1,3 +1,26 @@
+/*
+ @licstart  The following is the entire license notice for the
+ JavaScript code in this file.
+
+ Copyright (C) 1997-2017 by Dimitri van Heesch
+
+ This program is free software; you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation; either version 2 of the License, or
+ (at your option) any later version.
+
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+
+ You should have received a copy of the GNU General Public License along
+ with this program; if not, write to the Free Software Foundation, Inc.,
+ 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+ @licend  The above is the entire license notice
+ for the JavaScript code in this file
+ */
 function initResizable()
 {
   var cookie_namespace = 'doxygen';
@@ -92,37 +115,22 @@ function initResizable()
   $(sidenav).resizable({ minWidth: 0 });
   $(window).resize(function() { resizeHeight(); });
   var device = navigator.userAgent.toLowerCase();
-  var ios_or_android = device.match(/(iphone|ipod|ipad|android)/);
-  if (ios_or_android) { /* wider split bar for touch only devices */
+  var touch_device = device.match(/(iphone|ipod|ipad|android)/);
+  if (touch_device) { /* wider split bar for touch only devices */
     $(sidenav).css({ paddingRight:'20px' });
     $('.ui-resizable-e').css({ width:'20px' });
-    console.log('ui='+$('.ui-resizable-e').width());
     $('#nav-sync').css({ right:'34px' });
     barWidth=20;
   }
   var width = readCookie('width');
   if (width) { restoreWidth(width); } else { resizeWidth(); }
+  resizeHeight();
   var url = location.href;
   var i=url.indexOf("#");
   if (i>=0) window.location.hash=url.substr(i);
   var _preventDefault = function(evt) { evt.preventDefault(); };
   $("#splitbar").bind("dragstart", _preventDefault).bind("selectstart", _preventDefault);
   $(".ui-resizable-handle").dblclick(collapseExpand);
-  $(document).bind('touchmove',function(e){
-    if (ios_or_android) {
-      try {
-        var target = e.target;
-        while (target) {
-          if ($(target).css('-webkit-overflow-scrolling')=='touch') return;
-          target = target.parentNode;
-        }
-        e.preventDefault();
-      } catch(err) {
-        e.preventDefault();
-      }
-    }
-  });
   $(window).load(resizeHeight);
 }
-
-
+/* @license-end */

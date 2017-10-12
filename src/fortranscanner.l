@@ -38,6 +38,9 @@
  * - Must track yyLineNr when using REJECT, unput() or similar commands.
  */
 %option never-interactive
+%option case-insensitive
+%option prefix="fortranscannerYY"
+
 %{
 
 #include <stdio.h> 
@@ -322,6 +325,12 @@ SCOPENAME ({ID}{BS}"::"{BS})*
 
  /*-----------------------------------------------------------------------------------*/
 
+<Prepass>^{BS}[&]*{BS}!.*\n             { /* skip lines with just comment. Note code was in free format or has been converted to it */
+                                          lineCountPrepass ++;
+                                        }
+<Prepass>^{BS}\n                        { /* skip empty lines */
+                                          lineCountPrepass ++;
+                                        }
 <*>^.*\n                                { // prepass: look for line continuations
   					  functionLine = FALSE;
 
@@ -1357,7 +1366,7 @@ void truncatePrepass(int index)
 
 // simplified way to know if this is fixed form
 // duplicate in fortrancode.l
-static bool recognizeFixedForm(const char* contents, FortranFormat format)
+bool recognizeFixedForm(const char* contents, FortranFormat format)
 {
   int column=0;
   bool skipLine=FALSE;
@@ -1410,7 +1419,8 @@ static void insertCharacter(char *contents, int length, int pos, char c)
 }
 
 /* change comments and bring line continuation character to previous line */
-static const char* prepassFixedForm(const char* contents)
+/* also used to set continuation marks in case of fortran code usage, done here as it is quite complicated code */
+const char* prepassFixedForm(const char* contents, int *hasContLine)
 {
   int column=0;
   int prevLineLength=0;
@@ -1422,8 +1432,10 @@ static const char* prepassFixedForm(const char* contents)
   bool inSingle=FALSE;
   bool inDouble=FALSE;
   bool inBackslash=FALSE;
+  bool fullCommentLine=TRUE;
   int newContentsSize = strlen(contents)+3; // \000, \n (when necessary) and one spare character (to avoid reallocation)
   char* newContents = (char*)malloc(newContentsSize);
+  int curLine = 1;
 
   for(int i=0, j=0;;i++,j++) {
     if(j>=newContentsSize-3) { // check for spare characters, which may be eventually used below (by & and '! ')
@@ -1435,19 +1447,39 @@ static const char* prepassFixedForm(const char* contents)
     char c = contents[i];
     switch(c) {
       case '\n':
-        prevLineLength=column;
-        prevLineAmpOrExclIndex=getAmpOrExclAtTheEnd(&contents[i-prevLineLength+1], prevLineLength,prevQuote);
+        if (!fullCommentLine)
+        {
+          prevLineLength=column;
+          prevLineAmpOrExclIndex=getAmpOrExclAtTheEnd(&contents[i-prevLineLength+1], prevLineLength,prevQuote);
+          if (prevLineAmpOrExclIndex == -1) prevLineAmpOrExclIndex = column - 1;
+        }
+        else
+        {
+          prevLineLength+=column;
+          /* Even though a full comment line is not really a comment line it can be seen as one. An empty line is also seen as a comment line (small bonus) */
+          if (hasContLine)
+          {
+            hasContLine[curLine - 1] = 1;
+          }
+        }
+        fullCommentLine=TRUE;
         column=0;
 	emptyLabel=TRUE;
         commented=FALSE;
         newContents[j]=c;
         prevQuote = thisQuote;
+        curLine++;
         break;
       case ' ':
       case '\t':
         newContents[j]=c;
         break;
       case '\000':
+        if (hasContLine)
+        {
+           free(newContents);
+           return NULL;
+        }
         newContents[j]='\000';
         newContentsSize = strlen(newContents);
         if (newContents[newContentsSize - 1] != '\n')
@@ -1463,7 +1495,8 @@ static const char* prepassFixedForm(const char* contents)
       case '\\':
         if ((column <= fixedCommentAfter) && (column!=6) && !commented)
 	{
-          // we have some special cases in respect to strings and exscaped string characters
+          // we have some special cases in respect to strings and escaped string characters
+          fullCommentLine=FALSE;
 	  newContents[j]=c;
           if (c == '\\')
           {
@@ -1512,6 +1545,7 @@ static const char* prepassFixedForm(const char* contents)
           }
 	  else
           {
+            if (!commented) fullCommentLine=FALSE;
 	    newContents[j]=c;
           }
 	  break;
@@ -1519,19 +1553,24 @@ static const char* prepassFixedForm(const char* contents)
         // fallthrough
       default:
         if(column==6 && emptyLabel) { // continuation
+          if (!commented) fullCommentLine=FALSE;
           if (c != '0') { // 0 not allowed as continuation character, see f95 standard paragraph 3.3.2.3
             newContents[j]=' ';
 
             if(prevLineAmpOrExclIndex==-1) { // add & just before end of previous line
-              insertCharacter(newContents, j+1, (j+1)-6-1, '&');
+              /* first line is not a continuation line in code, just in snippets etc. */
+              if (curLine != 1) insertCharacter(newContents, j+1, (j+1)-6-1, '&');
               j++;
             } else { // add & just before end of previous line comment
-              insertCharacter(newContents, j+1, (j+1)-6-prevLineLength+prevLineAmpOrExclIndex, '&');
+              /* first line is not a continuation line in code, just in snippets etc. */
+              if (curLine != 1) insertCharacter(newContents, j+1, (j+1)-6-prevLineLength+prevLineAmpOrExclIndex, '&');
               j++;
             }
+            if (hasContLine) hasContLine[curLine - 1] = 1;
 	  } else {
 	    newContents[j]=c; // , just handle like space
           }
+          prevLineLength=0;
 	} else if ((column > fixedCommentAfter) && !commented) {
           // first non commented non blank character after position fixedCommentAfter
           if (c != '!') {
@@ -1542,6 +1581,7 @@ static const char* prepassFixedForm(const char* contents)
 	  newContents[j]=c;
           commented = TRUE;
 	} else {
+          if (!commented) fullCommentLine=FALSE;
 	  newContents[j]=c;
 	  emptyLabel=FALSE;
 	}
@@ -1549,6 +1589,11 @@ static const char* prepassFixedForm(const char* contents)
     }
   }
 
+  if (hasContLine)
+  {
+    free(newContents);
+    return NULL;
+  }
   newContentsSize = strlen(newContents);
   if (newContents[newContentsSize - 1] != '\n')
   {
@@ -2491,7 +2536,11 @@ static void parseMain(const char *fileName,const char *fileBuf,Entry *rt, Fortra
       //printf("---strlen=%d\n", strlen(fileBuf));
       //clock_t start=clock();
 
-      inputString = prepassFixedForm(fileBuf);
+      //printf("Input fixed form string:\n%s\n", fileBuf);
+      //printf("===========================\n");
+      inputString = prepassFixedForm(fileBuf, NULL);
+      //printf("Resulting free form string:\n%s\n", inputString);
+      //printf("===========================\n");
 
       //clock_t end=clock();
       //printf("CPU time used=%f\n", ((double) (end-start))/CLOCKS_PER_SEC);

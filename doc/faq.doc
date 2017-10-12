@@ -247,7 +247,7 @@ option \ref cfg_builtin_stl_support "BUILTIN_STL_SUPPORT" is turned on.
 
 \section faq_search I have problems getting the search engine to work with PHP5 and/or windows
 
-Please read <a href="searchengine.html">this</a> for hints on where to look. 
+Please read <a href="http://www.doxygen.org/searchengine.html">this</a> for hints on where to look. 
 
 \section faq_cmdline Can I configure doxygen from the command line?
 
@@ -285,7 +285,7 @@ At the time I was looking into \c lex and \c yacc, where a lot of things start w
 \section faq_why What was the reason to develop doxygen?
 
 I once wrote a GUI widget based on the Qt library (it is still available at
-http://sourceforge.net/projects/qdbttabular/ but hasn't been updated since 2002). 
+https://sourceforge.net/projects/qdbttabular/ but hasn't been updated since 2002). 
 Qt had nicely generated documentation (using an internal tool which 
 <a href="http://rant.gulbrandsen.priv.no/udoc/history">they didn't want to release</a>) 
 and I wrote similar docs by hand. 

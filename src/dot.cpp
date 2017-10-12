@@ -390,6 +390,7 @@ static QCString replaceRef(const QCString &buf,const QCString relPath,
   //bool isXLink=FALSE;
   int len = 6;
   int indexS = buf.find("href=\""), indexE;
+  bool setTarget = FALSE;
   if (indexS>5 && buf.find("xlink:href=\"")!=-1) // XLink href (for SVG)
   {
     indexS-=6;
@@ -430,7 +431,9 @@ static QCString replaceRef(const QCString &buf,const QCString relPath,
         QCString url = link.mid(marker+1);
         if (!ref.isEmpty())
         {
-          result = externalLinkTarget() + externalRef(relPath,ref,FALSE);
+          result = externalLinkTarget();
+	  if (result != "") setTarget = TRUE;
+	  result += externalRef(relPath,ref,FALSE);
         }
         result+= href+"=\"";
         result+=externalRef(relPath,ref,TRUE);
@@ -441,7 +444,7 @@ static QCString replaceRef(const QCString &buf,const QCString relPath,
         result = href+"=\"" + link + "\"";
       }
     }
-    if (!target.isEmpty())
+    if (!target.isEmpty() && !setTarget)
     {
       result+=" target=\""+target+"\"";
     }
@@ -2590,7 +2593,7 @@ void DotGfxHierarchyTable::addClassList(ClassSDict *cl)
   }
 }
 
-DotGfxHierarchyTable::DotGfxHierarchyTable() : m_curNodeNumber(0)
+DotGfxHierarchyTable::DotGfxHierarchyTable() : m_curNodeNumber(1)
 {
   m_rootNodes = new QList<DotNode>;
   m_usedNodes = new QDict<DotNode>(1009); 
