@@ -17,6 +17,7 @@ addons:
       - texlive-latex-extra
       - texlive-font-utils
       - libxml2-utils
+      - ghostscript
 
 script:
     - mkdir build
