@@ -1,3 +1,29 @@
+# Doxygen FORK with custom DOT coloring [![Build Status](https://travis-ci.org/adiog/doxygen.svg?branch=dotcolor)](https://travis-ci.org/adiog/doxygen)
+
+Doxyfile sample
+===============
+```
+...
+# This tag can be used to specify a color rules for labels in dot graphs. A rule
+# has the form:
+# label=fillcolor
+# Example:
+# "iostream=orange\n"
+
+DOT_COLOR_RULES_EXACT  =
+
+# This tag can be used to specify a color rules for labels in dot graphs. A rule
+# has the form:
+# labelregex=fillcolor
+# Example:
+# "*cpp=orange\n"
+
+DOT_COLOR_RULES_REGEX  =
+...
+```
+
+Exact rules have higher priority to Regex rules.
+
 Doxygen
 ===============
 Doxygen is the de facto standard tool for generating documentation from 
